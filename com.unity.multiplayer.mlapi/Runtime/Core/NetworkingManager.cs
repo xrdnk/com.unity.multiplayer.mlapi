@@ -26,6 +26,7 @@ using static MLAPI.Messaging.CustomMessagingManager;
 using MLAPI.Exceptions;
 using MLAPI.Transports.Tasks;
 using MLAPI.Messaging.Buffering;
+using MLAPI.AOI;
 using Unity.Profiling;
 
 namespace MLAPI
@@ -168,6 +169,20 @@ namespace MLAPI
         /// Gets if we are connected as a client
         /// </summary>
         public bool IsConnectedClient { get; internal set; }
+
+        private ClientObjectMap clientObjectMap;
+
+        public ClientObjectMap ClientObjectMap
+        {
+            get
+            {
+                if (clientObjectMap == null)
+                    clientObjectMap = new ClientObjectMap();
+
+                return clientObjectMap;
+            }
+        }
+
         /// <summary>
         /// The callback to invoke once a client connects. This callback is only ran on the server and on the local client that connects.
         /// </summary>
@@ -338,7 +353,6 @@ namespace MLAPI
                 NetworkConfig.PlayerPrefabHash.Value = prefab.Hash;
             }
         }
-
         private void Init(bool server)
         {
             if (NetworkLog.CurrentLogLevel <= LogLevel.Developer) NetworkLog.LogInfo("Init()");

@@ -425,6 +425,7 @@ namespace MLAPI
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             s_NetworkedBehaviourUpdate.Begin();
 #endif
+            var objMap = NetworkingManager.Singleton.ClientObjectMap;
             try
             {
                 if (IsServer)
@@ -433,7 +434,7 @@ namespace MLAPI
                     for (int i = 0; i < NetworkingManager.Singleton.ConnectedClientsList.Count; i++)
                     {
                         var client = NetworkingManager.Singleton.ConnectedClientsList[i];
-                        var spawnedObjs = SpawnManager.SpawnedObjectsList;
+                        var spawnedObjs = objMap.QueryFor(client);
                         touched.UnionWith(spawnedObjs);
                         foreach (var sobj in spawnedObjs)
                         {
@@ -601,6 +602,7 @@ namespace MLAPI
                 }
             }
         }
+
         private bool CouldHaveDirtyNetworkedVars()
         {
             // TODO: There should be a better way by reading one dirty variable vs. 'n'
