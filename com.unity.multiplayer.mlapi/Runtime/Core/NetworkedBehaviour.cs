@@ -425,7 +425,6 @@ namespace MLAPI
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             s_NetworkedBehaviourUpdate.Begin();
 #endif
-            var objMap = NetworkingManager.Singleton.ClientObjectMap;
             try
             {
                 if (IsServer)
@@ -434,7 +433,7 @@ namespace MLAPI
                     for (int i = 0; i < NetworkingManager.Singleton.ConnectedClientsList.Count; i++)
                     {
                         var client = NetworkingManager.Singleton.ConnectedClientsList[i];
-                        var spawnedObjs = objMap.QueryFor(client);
+                        var spawnedObjs = NetworkingManager.Singleton.ClientObjectMap.QueryFor(client);
                         touched.UnionWith(spawnedObjs);
                         foreach (var sobj in spawnedObjs)
                         {
