@@ -6,69 +6,42 @@ using UnityEngine;
 
 namespace MLAPI.AOI
 {
-   public class _ClientObjectMap<CLIENT, OBJECT>
-   {
-      private _ClientObjectMapBaseNode<CLIENT, OBJECT> root;
-
-      public _ClientObjectMap() : base()
-      {
-          Debug.Log("IM XTOR");
-          root = new _ClientObjectMapBaseNode<CLIENT, OBJECT>();
-      }
-
-      public HashSet<OBJECT> QueryFor(CLIENT client)
-      {
-          HashSet<OBJECT> results = new HashSet<OBJECT>();
-          root.QueryFor(client, results);
-          return results;
-      }
-
-      public void DespawnCleanup(OBJECT no)
-      {
-          root.DespawnCleanup(no);
-      }
-
-      public void AddNode(_ClientObjectMapBaseNode<CLIENT, OBJECT> n)
-      {
-          root.AddNode(n);
-      }
-
-      private Dictionary<string, _ClientObjectMapBaseNode<CLIENT, OBJECT>> nodeDictionary;
-   }
-
    public class _ClientObjectMapBaseNode<CLIENT, OBJECT>
    {
+       // set this delegate if you want a function called when
        public delegate void TeardownHandler(OBJECT obj);
-       protected TeardownHandler OnTeardown;
+       protected TeardownHandler OnDespawn;
 
        public _ClientObjectMapBaseNode() : base()
        {
            children = new List<_ClientObjectMapBaseNode<CLIENT, OBJECT>>();
        }
 
-       public virtual void OnDespawn(OBJECT o) { }
-
         public virtual void OnQuery(CLIENT client, HashSet<OBJECT> results) { }
 
-       public void QueryFor(CLIENT client, HashSet<OBJECT> results)
+        public HashSet<OBJECT> QueryFor(CLIENT client)
+        {
+            HashSet<OBJECT> results = new HashSet<OBJECT>();
+            DoQueryFor(client, results);
+            return results;
+        }
+
+       private void DoQueryFor(CLIENT client, HashSet<OBJECT> results)
         {
             OnQuery(client, results);
 
             foreach (var c in children)
             {
-                c.QueryFor(client, results);
+                c.DoQueryFor(client, results);
             }
         }
 
-
         public void DespawnCleanup(OBJECT o)
         {
-            if (OnTeardown != null)
+            if (OnDespawn != null)
             {
-                OnTeardown(o); // ??
+                OnDespawn(o); // RENAME to OnDespawn
             }
-
-            OnDespawn(o);
 
             foreach (var c in children)
             {
@@ -89,11 +62,6 @@ namespace MLAPI.AOI
         public delegate void DynamicQuery(CLIENT client, HashSet<OBJECT> results);
         protected DynamicQuery dynamicQuery;
 
-        public _ClientObjectMapDynamicNode()
-        {
-            Debug.Log("IN DYN XTOR");
-        }
-
         public override void OnQuery(CLIENT client, HashSet<OBJECT> results)
         {
             if (dynamicQuery != null)
@@ -101,26 +69,23 @@ namespace MLAPI.AOI
                 dynamicQuery(client, results);
             }
         }
-
     }
 
 
     public class _ClientObjectMapStaticNode<CLIENT, OBJECT> : _ClientObjectMapBaseNode<CLIENT, OBJECT>
     {
-
         public _ClientObjectMapStaticNode() : base()
         {
             alwaysRelevant = new HashSet<OBJECT>();
+            OnDespawn = delegate(OBJECT o)
+            {
+                alwaysRelevant.Remove(o);
+            };
         }
 
         public void AddStatic(OBJECT o) //??
         {
             alwaysRelevant.Add(o);
-        }
-
-        public override void OnDespawn(OBJECT o)
-        {
-            alwaysRelevant.Remove(o);
         }
 
         public override void OnQuery(CLIENT client, HashSet<OBJECT> results)
@@ -129,12 +94,6 @@ namespace MLAPI.AOI
         }
 
         private HashSet<OBJECT> alwaysRelevant;
-    }
-
-
-
-    public class ClientObjectMap : _ClientObjectMap<NetworkedClient, NetworkedObject>
-    {
     }
 
     public class ClientObjectMapStaticNode : _ClientObjectMapStaticNode<NetworkedClient, NetworkedObject>

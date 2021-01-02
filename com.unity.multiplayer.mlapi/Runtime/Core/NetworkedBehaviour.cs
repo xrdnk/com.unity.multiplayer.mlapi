@@ -433,7 +433,7 @@ namespace MLAPI
                     for (int i = 0; i < NetworkingManager.Singleton.ConnectedClientsList.Count; i++)
                     {
                         var client = NetworkingManager.Singleton.ConnectedClientsList[i];
-                        var spawnedObjs = NetworkingManager.Singleton.ClientObjectMap.QueryFor(client);
+                        var spawnedObjs = NetworkingManager.Singleton.XXX.QueryFor(client);
                         touched.UnionWith(spawnedObjs);
                         foreach (var sobj in spawnedObjs)
                         {
