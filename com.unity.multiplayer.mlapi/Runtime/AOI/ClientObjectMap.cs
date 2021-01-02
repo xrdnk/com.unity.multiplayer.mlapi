@@ -2,22 +2,24 @@ using System;
 using System.Collections.Generic;
 
 using MLAPI.Connection;
+using UnityEngine;
 
 namespace MLAPI.AOI
 {
    public class _ClientObjectMap<CLIENT, OBJECT>
    {
-      private _ClientObjectMapNode<CLIENT, OBJECT> root;
+      private _ClientObjectMapBaseNode<CLIENT, OBJECT> root;
 
-      public _ClientObjectMap()
+      public _ClientObjectMap() : base()
       {
-          root = new _ClientObjectMapNode<CLIENT, OBJECT>();
+          Debug.Log("IM XTOR");
+          root = new _ClientObjectMapBaseNode<CLIENT, OBJECT>();
       }
 
-      public HashSet<OBJECT> QueryFor(CLIENT client, _ClientObjectMapNode<CLIENT, OBJECT>.ObjMapTempDel myDel = null)
+      public HashSet<OBJECT> QueryFor(CLIENT client)
       {
           HashSet<OBJECT> results = new HashSet<OBJECT>();
-          root.QueryFor(client, results, myDel);
+          root.QueryFor(client, results);
           return results;
       }
 
@@ -25,43 +27,48 @@ namespace MLAPI.AOI
       {
           root.DespawnCleanup(no);
       }
-      public void AddNode(_ClientObjectMapNode<CLIENT, OBJECT> n)
+
+      public void AddNode(_ClientObjectMapBaseNode<CLIENT, OBJECT> n)
       {
           root.AddNode(n);
       }
 
-      private Dictionary<string, _ClientObjectMapNode<CLIENT, OBJECT>> nodeDictionary;
+      private Dictionary<string, _ClientObjectMapBaseNode<CLIENT, OBJECT>> nodeDictionary;
    }
 
-    public class _ClientObjectMapNode<CLIENT, OBJECT>
-    {
-        public delegate void ObjMapTempDel(OBJECT obj);
+   public class _ClientObjectMapBaseNode<CLIENT, OBJECT>
+   {
+       public delegate void TeardownHandler(OBJECT obj);
+       protected TeardownHandler OnTeardown;
 
-        public delegate void DynamicQuery(CLIENT client, HashSet<OBJECT> results);
+       public _ClientObjectMapBaseNode() : base()
+       {
+           children = new List<_ClientObjectMapBaseNode<CLIENT, OBJECT>>();
+       }
 
-        public delegate void CleanupHandler(OBJECT obj);
+       public virtual void OnDespawn(OBJECT o) { }
 
-        protected DynamicQuery dynamicQuery;
-        protected CleanupHandler cleanupHandler;
+        public virtual void OnQuery(CLIENT client, HashSet<OBJECT> results) { }
 
-        public _ClientObjectMapNode()
+       public void QueryFor(CLIENT client, HashSet<OBJECT> results)
         {
-            children = new List<_ClientObjectMapNode<CLIENT, OBJECT>>();
-            alwaysRelevant = new HashSet<OBJECT>();
+            OnQuery(client, results);
+
+            foreach (var c in children)
+            {
+                c.QueryFor(client, results);
+            }
         }
 
-        public void AddStatic(OBJECT o)
-        {
-            alwaysRelevant.Add(o);
-        }
 
         public void DespawnCleanup(OBJECT o)
         {
-            alwaysRelevant.Remove(o);
-            if (cleanupHandler != null)
+            if (OnTeardown != null)
             {
-                cleanupHandler(o);
+                OnTeardown(o); // ??
             }
+
+            OnDespawn(o);
 
             foreach (var c in children)
             {
@@ -69,44 +76,72 @@ namespace MLAPI.AOI
             }
         }
 
-        public void AddNode(_ClientObjectMapNode<CLIENT, OBJECT> newNode)
+        public void AddNode(_ClientObjectMapBaseNode<CLIENT, OBJECT> newNode)
         {
             children.Add(newNode);
         }
 
-        // override test me
-        public void QueryFor(CLIENT client, HashSet<OBJECT> results, ObjMapTempDel del)
-        {
-            results.UnionWith(alwaysRelevant);
-            foreach (var ar in alwaysRelevant)
-            {
-                del(ar);
-            }
+        private List<_ClientObjectMapBaseNode<CLIENT, OBJECT>> children;
+   }
 
+    public class _ClientObjectMapDynamicNode<CLIENT, OBJECT> : _ClientObjectMapBaseNode<CLIENT, OBJECT>
+    {
+        public delegate void DynamicQuery(CLIENT client, HashSet<OBJECT> results);
+        protected DynamicQuery dynamicQuery;
+
+        public _ClientObjectMapDynamicNode()
+        {
+            Debug.Log("IN DYN XTOR");
+        }
+
+        public override void OnQuery(CLIENT client, HashSet<OBJECT> results)
+        {
             if (dynamicQuery != null)
             {
                 dynamicQuery(client, results);
             }
-            foreach (var c in children)
-            {
-                c.QueryFor(client, results, del);
-            }
         }
 
-        public _ClientObjectMapNode<CLIENT, OBJECT> Next { get; set; }
+    }
 
-        private _ClientObjectMapNode<CLIENT, OBJECT> next;
-        private List<_ClientObjectMapNode<CLIENT, OBJECT>> children;
+
+    public class _ClientObjectMapStaticNode<CLIENT, OBJECT> : _ClientObjectMapBaseNode<CLIENT, OBJECT>
+    {
+
+        public _ClientObjectMapStaticNode() : base()
+        {
+            alwaysRelevant = new HashSet<OBJECT>();
+        }
+
+        public void AddStatic(OBJECT o) //??
+        {
+            alwaysRelevant.Add(o);
+        }
+
+        public override void OnDespawn(OBJECT o)
+        {
+            alwaysRelevant.Remove(o);
+        }
+
+        public override void OnQuery(CLIENT client, HashSet<OBJECT> results)
+        {
+            results.UnionWith(alwaysRelevant);
+        }
 
         private HashSet<OBJECT> alwaysRelevant;
     }
+
 
 
     public class ClientObjectMap : _ClientObjectMap<NetworkedClient, NetworkedObject>
     {
     }
 
-    public class ClientObjectMapNode : _ClientObjectMapNode<NetworkedClient, NetworkedObject>
+    public class ClientObjectMapStaticNode : _ClientObjectMapStaticNode<NetworkedClient, NetworkedObject>
+    {
+    }
+
+    public class ClientObjectMapDynamicNode : _ClientObjectMapDynamicNode<NetworkedClient, NetworkedObject>
     {
     }
 }
