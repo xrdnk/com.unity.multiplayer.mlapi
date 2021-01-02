@@ -6,15 +6,15 @@ using UnityEngine;
 
 namespace MLAPI.AOI
 {
-   public class _ClientObjectMapBaseNode<CLIENT, OBJECT>
+   public class ClientObjMapNodeBase<CLIENT, OBJECT>
    {
        // set this delegate if you want a function called when
        public delegate void TeardownHandler(OBJECT obj);
        protected TeardownHandler OnDespawn;
 
-       public _ClientObjectMapBaseNode() : base()
+       public ClientObjMapNodeBase() : base()
        {
-           children = new List<_ClientObjectMapBaseNode<CLIENT, OBJECT>>();
+           children = new List<ClientObjMapNodeBase<CLIENT, OBJECT>>();
        }
 
         public virtual void OnQuery(CLIENT client, HashSet<OBJECT> results) { }
@@ -49,15 +49,15 @@ namespace MLAPI.AOI
             }
         }
 
-        public void AddNode(_ClientObjectMapBaseNode<CLIENT, OBJECT> newNode)
+        public void AddNode(ClientObjMapNodeBase<CLIENT, OBJECT> @new)
         {
-            children.Add(newNode);
+            children.Add(@new);
         }
 
-        private List<_ClientObjectMapBaseNode<CLIENT, OBJECT>> children;
+        private List<ClientObjMapNodeBase<CLIENT, OBJECT>> children;
    }
 
-    public class _ClientObjectMapDynamicNode<CLIENT, OBJECT> : _ClientObjectMapBaseNode<CLIENT, OBJECT>
+    public class ClientObjMapNodeDynamic<CLIENT, OBJECT> : ClientObjMapNodeBase<CLIENT, OBJECT>
     {
         public delegate void DynamicQuery(CLIENT client, HashSet<OBJECT> results);
         protected DynamicQuery dynamicQuery;
@@ -71,36 +71,33 @@ namespace MLAPI.AOI
         }
     }
 
-
-    public class _ClientObjectMapStaticNode<CLIENT, OBJECT> : _ClientObjectMapBaseNode<CLIENT, OBJECT>
+    public class ClientObjMapNodeStatic<CLIENT, OBJECT> : ClientObjMapNodeBase<CLIENT, OBJECT>
     {
-        public _ClientObjectMapStaticNode() : base()
+        public ClientObjMapNodeStatic() : base()
         {
             alwaysRelevant = new HashSet<OBJECT>();
+
+            // when we are told an object is despawning, remove it from our list
             OnDespawn = delegate(OBJECT o)
             {
                 alwaysRelevant.Remove(o);
             };
         }
 
-        public void AddStatic(OBJECT o) //??
+        // Add a new item to our static list
+        public void Add(OBJECT o)
         {
             alwaysRelevant.Add(o);
         }
 
+        // for our query, we simply union our static objects with the results
+        //  more sophisticated methods might be explored later, like having the results
+        //  list contain not ust
         public override void OnQuery(CLIENT client, HashSet<OBJECT> results)
         {
             results.UnionWith(alwaysRelevant);
         }
 
         private HashSet<OBJECT> alwaysRelevant;
-    }
-
-    public class ClientObjectMapStaticNode : _ClientObjectMapStaticNode<NetworkedClient, NetworkedObject>
-    {
-    }
-
-    public class ClientObjectMapDynamicNode : _ClientObjectMapDynamicNode<NetworkedClient, NetworkedObject>
-    {
     }
 }

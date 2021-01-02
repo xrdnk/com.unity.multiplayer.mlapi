@@ -170,16 +170,16 @@ namespace MLAPI
         /// </summary>
         public bool IsConnectedClient { get; internal set; }
 
-        private _ClientObjectMapBaseNode<NetworkedClient, NetworkedObject> clientObjectMap;
+        private ClientObjMapNodeBase<NetworkedClient, NetworkedObject> clientObjMapNode;
 
-        public _ClientObjectMapBaseNode<NetworkedClient, NetworkedObject> XXX
+        public ClientObjMapNodeBase<NetworkedClient, NetworkedObject> ClientObjMapNode
         {
             get
             {
-                if (clientObjectMap == null)
-                    clientObjectMap = new _ClientObjectMapBaseNode<NetworkedClient, NetworkedObject>();
+                if (clientObjMapNode == null)
+                    clientObjMapNode = new ClientObjMapNodeBase<NetworkedClient, NetworkedObject>();
 
-                return clientObjectMap;
+                return clientObjMapNode;
 
 /*
                 if (clientObjectMap == null)
